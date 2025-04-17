@@ -38,8 +38,8 @@ export class DeletedFilesService {
   //}
 
   // Restore a deleted file and remove from the deleted list
-  restoreDeletedFile(fileId: string): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/restore/${fileId}`, {});
+  restoreDeletedFile(fileId: string, headers: HttpHeaders): Observable<void> {
+    return this.http.post<void>(`${this.apiUrl}/restore/${fileId}`, {}, { headers });
   }
 
   // Clear all deleted files from localStorage (empty the bin)

@@ -58,7 +58,7 @@ export class DeleteComponent implements OnInit {
   fetchDeletedFiles(): void {
     const headers = new HttpHeaders().set(
       'Authorization',
-      `Token ${this.authService.getToken() || ''}`
+      `Bearer ${this.authService.getToken() || ''}`
     );
   
     this.folderService.getDeletedFiles(this.userId, headers).subscribe(
@@ -76,11 +76,14 @@ export class DeleteComponent implements OnInit {
   restoreFile(fileId: number): void {
     const fileIds = [fileId]; // Convert to an array for API compatibility
   
-    this.folderService.restoreFiles(fileIds).subscribe(
+    const headers = new HttpHeaders()
+      .set('X-CSRFToken', this.getCookie('csrftoken'))
+      .set('Authorization', `Bearer ${this.authService.getToken() || ''}`);
+  
+    this.folderService.restoreFiles(fileIds, headers).subscribe(
       (response) => {
         console.log('File restored successfully!', response);
   
-        // Handle partial failures
         if (response.failed && response.failed.length > 0) {
           console.error('Restore failed for file:', response.failed[0]);
           alert(`Restore failed: ${response.failed[0].error}`);
@@ -88,7 +91,6 @@ export class DeleteComponent implements OnInit {
           alert('File restored successfully!');
         }
   
-        // Refresh the deleted files list after restoring
         this.fetchDeletedFiles();
       },
       (error: HttpErrorResponse) => {
@@ -99,21 +101,24 @@ export class DeleteComponent implements OnInit {
   }
   
   
-  
    // Restore selected files
    restoreSelectedFiles(): void {
-    const fileIds = this.selectedFiles;
-  
+    const headers = new HttpHeaders()
+      .set('X-CSRFToken', this.getCookie('csrftoken'))
+      .set('Authorization', `Bearer ${this.authService.getToken() || ''}`);
+    
+    const fileIds = this.selectedFiles; // Already an array of numbers
+    
     if (!fileIds.length) {
       console.warn('No files selected for restoration.');
       return;
     }
-  
+    
     // Optimistically update UI
     const restoredFiles = this.deletedFiles.filter(file => fileIds.includes(file.id));
     this.deletedFiles = this.deletedFiles.filter(file => !fileIds.includes(file.id));
-  
-    this.folderService.restoreFiles(fileIds).subscribe(
+    
+    this.folderService.restoreFiles(fileIds, headers).subscribe(  // Pass both fileIds and headers
       (response) => {
         console.log(`Restored ${fileIds.length} files successfully:`, response);
   
@@ -139,7 +144,6 @@ export class DeleteComponent implements OnInit {
       }
     );
   }
-  
    
 
    
@@ -147,7 +151,9 @@ export class DeleteComponent implements OnInit {
   permanentlyDeleteFile(fileId: number, event: Event): void {
     event.preventDefault(); // Prevent Safari from blocking the click
     event.stopPropagation(); // Stop event bubbling
-    const headers = new HttpHeaders().set('X-CSRFToken', this.getCookie('csrftoken'));
+    const headers = new HttpHeaders()
+      .set('X-CSRFToken', this.getCookie('csrftoken'))
+      .set('Authorization', `Bearer ${this.authService.getToken() || ''}`);
     console.log("Delete button clicked for file ID:", fileId);
   
     if (confirm('Are you sure you want to permanently delete this file? This action cannot be undone.')) {
@@ -167,7 +173,9 @@ export class DeleteComponent implements OnInit {
 
 // Delete selected files permanently
 deleteSelectedFiles(): void {
-  const headers = new HttpHeaders().set('X-CSRFToken', this.getCookie('csrftoken'));
+  const headers = new HttpHeaders()
+      .set('X-CSRFToken', this.getCookie('csrftoken'))
+      .set('Authorization', `Bearer ${this.authService.getToken() || ''}`);
 
   if (!this.selectedFiles.length) {
     console.warn('No files selected for permanent deletion.');
@@ -192,7 +200,9 @@ deleteSelectedFiles(): void {
 
   // Empty the trash
   emptyTrash(): void {
-    const headers = new HttpHeaders().set('X-CSRFToken', this.getCookie('csrftoken'));
+    const headers = new HttpHeaders()
+      .set('X-CSRFToken', this.getCookie('csrftoken'))
+      .set('Authorization', `Bearer ${this.authService.getToken() || ''}`);
   
     if (confirm('Are you sure you want to permanently delete all files in the trash? This action cannot be undone.')) {
       this.folderService.emptyTrash(headers).subscribe(
