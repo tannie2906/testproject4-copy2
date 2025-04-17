@@ -35,6 +35,8 @@ export class FolderComponent implements OnInit {
   currentFolderId: string | null = null;
   isAuthenticated: boolean = false;
   folders: any;
+  authToken: string | null = null;
+
   @Input() folderId!: string; 
   showShareModal = false;
   shareEmail = '';
@@ -71,13 +73,23 @@ export class FolderComponent implements OnInit {
 
   ngOnInit(): void {
     document.addEventListener('click', this.handleClickOutside.bind(this));
-    this.isAuthenticated = !!this.authService.getToken();
-    if (!this.isAuthenticated) {
-      this.errorMessage = 'You are not authenticated. Please log in.';
-      return;
-    }
-    this.fetchFilesAndFolders();
+    const token = this.authService.getToken();
+  
+  if (!token) {
+    this.errorMessage = 'You are not authenticated. Please log in.';
+    this.router.navigate(['/login']);  // Redirect to login if no token
+    return;
   }
+     // Add logic to check for token expiration
+  if (this.authService.isTokenExpired(token)) {
+    this.errorMessage = 'Your session has expired. Please log in again.';
+    this.router.navigate(['/login']);  // Redirect to login if token expired
+    return;
+  }
+
+  this.isAuthenticated = true;
+  this.fetchFilesAndFolders();
+}
 
   handleClickOutside(event: Event): void {
     const target = event.target as HTMLElement;
@@ -90,7 +102,7 @@ export class FolderComponent implements OnInit {
     const token = this.authService.getToken();
     return {
       headers: new HttpHeaders({
-        'Authorization': `Token ${token}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',  // Ensure Content-Type is application/json
       }),
     };
@@ -276,63 +288,49 @@ export class FolderComponent implements OnInit {
   uploadFiles(formData: FormData, isFolder: boolean) {
     this.uploading = true;
   
-    this.http.post(`${this.apiUrl}/upload/`, formData, {
-      reportProgress: true,
-      observe: 'events',
-    }).subscribe({
-      next: (event: any) => {
-        if (event.type === HttpEventType.UploadProgress) {
-          this.progress = Math.round((100 * event.loaded) / event.total);
-        } else if (event.type === HttpEventType.Response) {
+    // Refresh token before uploading
+    this.authService.refreshIfNeeded().subscribe((newToken) => {
+      if (!newToken) {
+        console.error('Token refresh failed, logging out...');
+        this.authService.logout(); // Logout if refresh fails
+        return;
+      }
+  
+      this.http.post(`${this.apiUrl}/upload/`, formData, {
+        reportProgress: true,
+        observe: 'events',
+        headers: new HttpHeaders({
+          'Authorization': `Bearer ${newToken}`  // ✅ Use the new refreshed token
+        })
+      }).subscribe({
+        next: (event: any) => {
+          if (event.type === HttpEventType.UploadProgress) {
+            this.progress = Math.round((100 * event.loaded) / event.total);
+          } else if (event.type === HttpEventType.Response) {
+            this.uploading = false;
+            this.progress = null;
+            alert('Files uploaded successfully!');
+            this.fetchFilesAndFolders(); 
+          }
+        },
+        error: (error) => {
           this.uploading = false;
           this.progress = null;
+          console.error('File upload failed:', error);
   
-          // Update files and folders based on server response
-          const uploadedFiles = event.body?.files || [];
-          uploadedFiles.forEach((file: any) => {
-            // Immediately update the files array with the new file
-            this.files.push({
-              id: file.file_id,
-              name: file.file_name,
-              size: this.formatFileSize(file.size),
-              owner: file.owner || 'Unknown',  // Ensure this exists in the backend response
-              modified: file.created_at, // Ensure 'created_at' is present in the response
-              isStarred: file.is_starred,
-              isDeleted: file.is_deleted,
-              type: 'file', // Ensure this matches the file type
-            });
-          });
-          alert('Files uploaded successfully!');
-        }
-      },
-      error: (error) => {
-        this.uploading = false;
-        this.progress = null;
-        console.error('File upload failed:', error);
-        console.log('Error received:', error);
-      
-        if (error.status === 400 && error.error?.error) {
-          this.snackBar.openFromComponent(CustomSnackbarComponent, {
-            duration: 5000,
-            data: {
-              message: error.error.error,
-              imageUrl: '/assets/sad.png' // Change to your image path
-            },
-            panelClass: ['snackbar-error']
-          });
-        } else {
           this.snackBar.openFromComponent(CustomSnackbarComponent, {
             duration: 5000,
             data: {
               message: 'File upload failed. Please try again.',
-              imageUrl: '/assets/sad.png' // Change to your image path
+              imageUrl: '/assets/sad.png'
             },
             panelClass: ['snackbar-error']
           });
         }
-      }
-    }); 
+      });
+    });
   }
+  
 
   // Fetch files using the service
   getStarredFiles(): void {
@@ -428,7 +426,7 @@ export class FolderComponent implements OnInit {
     const token = this.authService.getToken();
     try {
       const response = await axios.get('https://127.0.0.1:8000/api/folders/', {
-        headers: { Authorization: `Token ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const data = response.data;
   
@@ -488,7 +486,7 @@ export class FolderComponent implements OnInit {
         payload,
         {
           headers: {
-            Authorization: `Token ${token}`,
+            Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
         }
@@ -513,7 +511,7 @@ export class FolderComponent implements OnInit {
       `https://127.0.0.1:8000/api/delete/${fileId}/`,
       {},
       {
-        headers: { Authorization: `Token ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       }
     );
     alert('File moved to trash.');
@@ -546,10 +544,6 @@ export class FolderComponent implements OnInit {
       }
     });
   }
-  
-  //onOpenFile(file: any): void {
-   // this.router.navigate([`/files/view/${file.id}`]);
-  //}
 
   async onOpenFile(file: any): Promise<void> {
     try {
@@ -563,10 +557,11 @@ export class FolderComponent implements OnInit {
       console.error('Error tracking file view:', error);
     }
   }
+
   trackFileView(fileId: number) {
     const token = this.authService.getToken();
     return this.http.post(`${environment.apiUrl}/files/view/${fileId}/track/`, {}, {
-      headers: { Authorization: `Token ${token}` }
+      headers: { Authorization: `Bearer ${token}` } 
     });
   }
   
@@ -579,7 +574,7 @@ export class FolderComponent implements OnInit {
   moveToLockbox(fileId: number) {
     const token = localStorage.getItem('token');
     this.http.post(`https://127.0.0.1:8000/api/lockbox/move/${fileId}/`, {}, {
-      headers: new HttpHeaders({ 'Authorization': `Token ${token}` }),
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` }),
     }).subscribe(() => {
       alert('File moved to Lock Box!');
       this.fetchFilesAndFolders();

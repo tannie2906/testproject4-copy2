@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders  } from '@angular/common/http';
-import { BehaviorSubject, catchError, Observable, of, tap, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of, tap, throwError } from 'rxjs';
 import { UserFile } from '../models/user-file.model';
-import { HttpErrorResponse } from '@angular/common/http';
 import { AuthService } from '../auth.service'; 
 import { environment } from 'src/environments/environment';
+import { switchMap, catchError } from 'rxjs/operators';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 
 export interface File {
   webkitRelativePath: any;
@@ -27,8 +27,6 @@ export interface File {
   url: string;
   tables: any;
   isFavorite: boolean; 
-  
-
 }
 
 @Injectable({
@@ -42,14 +40,22 @@ export class FileService {
   constructor(private http: HttpClient, private authService: AuthService) {}
 
   // Utility: Get authorization headers
-  private getHeaders() {
-    return {
-      headers: {
-        Authorization: `Token ${this.authService.getToken()}`,
-      },
-    };
+  private getHeaders(): Observable<{ headers: HttpHeaders }> {
+    return this.authService.refreshIfNeeded().pipe(
+      switchMap((token) => {
+        if (!token) {
+          throw new Error('No valid authentication token found.');
+        }
+        return of({
+          headers: new HttpHeaders({
+            Authorization: `Bearer ${token}`,
+          }),
+        });
+      })
+    );
   }
-
+  
+  
   // Error handling utility
   private handleError<T>(operation = 'operation', result?: T) {
     return (error: HttpErrorResponse): Observable<T> => {
@@ -70,15 +76,22 @@ export class FileService {
 
   // Fetch all folders
   getFolderFiles(): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/folders/`, this.getHeaders()).pipe(
-      catchError(this.handleError('getFolderFiles', []))
+    return this.getHeaders().pipe(
+      switchMap((headers) =>
+        this.http.get<any>(`${this.apiUrl}/folders/`, headers)
+      ),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error fetching folder files:', error.message);
+        return of([]); 
+      })
     );
   }
+  
 
   // Rename file
   renameFile(fileId: number, newFullName: string) {
     const token = this.authService.getToken();
-    const headers = new HttpHeaders({ Authorization: `Token ${token}` });
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
   
     return this.http.post(`${this.apiUrl}/rename/${fileId}/`, { name: newFullName }, { headers });
   }
@@ -102,26 +115,45 @@ export class FileService {
   
   // Get URL for a specific file
   getFileUrl(fileName: string): Observable<{ fileUrl: string }> {
-    return this.http.get<{ fileUrl: string }>(`${this.apiUrl}/files/${fileName}`, this.getHeaders());
-  }  
+    return this.getHeaders().pipe(
+      switchMap((headers) =>
+        this.http.get<{ fileUrl: string }>(`${this.apiUrl}/files/${fileName}`, headers)
+      ),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Error fetching file URL:', error.message);
+        return throwError(() => error);
+      })
+    );
+  }
+   
 
   // delete method 
   deleteFile(fileId: number, isDeleted: boolean = false): Observable<any> {
-    const endpoint = isDeleted ? 'delete/permanent' : 'delete'; // Endpoint fix
+    const endpoint = isDeleted ? 'delete/permanent' : 'delete';
     const url = `${this.apiUrl}/${endpoint}/${fileId}/`;
-
-    return this.http.post(url, {}, this.getHeaders()).pipe( // Use POST here!
-        tap(() => console.log(`File ${isDeleted ? 'permanently' : 'temporarily'} deleted: ID ${fileId}`)),
-        catchError(this.handleError('deleteFile'))
+  
+    return this.getHeaders().pipe(
+      switchMap((headers) =>
+        this.http.post(url, {}, headers).pipe(
+          tap(() => console.log(`File ${isDeleted ? 'permanently' : 'temporarily'} deleted: ID ${fileId}`)),
+          catchError(this.handleError('deleteFile'))
+        )
+      )
     );
   }
+  
 
   // Fetch deleted files
   getDeletedFiles(): Observable<any> {
-    return this.http.get(`${this.apiUrl}/deleted-files/`, this.getHeaders()).pipe(
-      catchError(this.handleError('getDeletedFiles', []))
+    return this.getHeaders().pipe(
+      switchMap((headers) =>
+        this.http.get(`${this.apiUrl}/deleted-files/`, headers).pipe(
+          catchError(this.handleError('getDeletedFiles', []))
+        )
+      )
     );
   }
+  
 
   // File download URL
   getFileDownloadUrl(fileId: number): string {
@@ -131,7 +163,7 @@ export class FileService {
   // Ensure download uses the correct filename
   downloadFile(fileId: number, token: string): Observable<Blob> {
     const headers = new HttpHeaders({
-      Authorization: `Token ${token}`,
+      Authorization: `Bearer ${token}`,
     });
 
     return this.http.get(`${this.apiUrl}/download/${fileId}/`, {
@@ -170,7 +202,7 @@ export class FileService {
   getFolderContents(folderId: number): Observable<any> {
     const token = this.authService.getToken();
     return this.http.get<any>(`${this.apiUrl}/folders/${folderId}/`, {
-      headers: { Authorization: `Token ${token}` },
+      headers: { Authorization: `Bearer ${token}` },
     });
   }
 
@@ -218,7 +250,17 @@ export class FileService {
   }
 
   getFileById(fileId: string): Observable<any> {
-    return this.http.get(`https://localhost:8000/api/files/view/${fileId}/`); // Add /api/ prefix
-  }
+    const token = this.authService.getToken();
+  
+    if (!token) {
+      console.error("JWT Token is missing");
+      return throwError("Unauthorized: No token found");
+    }
 
+    return this.http.get(`https://localhost:8000/api/files/view/${fileId}/`, { 
+      headers: new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    }) 
+  });
+}
 }

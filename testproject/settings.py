@@ -3,8 +3,7 @@ import logging
 import certifi
 import ssl
 import os
-
-
+from datetime import timedelta
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,12 +13,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-^$4i)gr0!$8zr$kmz+@xv11r-e4oee^68+twbzu@xqj1e+(j+&'
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
-
 APPEND_SLASH = False
 
 
@@ -33,6 +29,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
     'rest_framework.authtoken',
     'myapp',
     'corsheaders',
@@ -40,8 +37,6 @@ INSTALLED_APPS = [
     'django_otp',
     'django_otp.plugins.otp_totp',  # Ensure this is included for TOTP devices
     'django_otp.plugins.otp_static',
-    #'django_otp.plugins.otp_totp',  # For TOTP-based 2FA
-    #'two_factor',
 ]
 
 MIDDLEWARE = [
@@ -132,6 +127,25 @@ REST_FRAMEWORK = {
     ],
 }
 
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(hours=1),  # Adjust as needed
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'AUTH_COOKIE': 'access_token',  # Access token cookie name
+    'AUTH_COOKIE_REFRESH': 'refresh_token',  # Refresh token cookie name
+    'AUTH_COOKIE_DOMAIN': None,  # Ensure this is None for local development, or set it to the domain if needed
+    'AUTH_COOKIE_PATH': '/',  # Ensure the cookie is available throughout the app
+    'AUTH_COOKIE_SECURE': True,  # Only send over HTTPS
+    'AUTH_COOKIE_HTTP_ONLY': True,  # Prevent JavaScript access
+    'AUTH_COOKIE_SAMESITE': 'None',  # Important for cross-origin
+}
+
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
@@ -153,12 +167,15 @@ CSRF_TRUSTED_ORIGINS = [
     "https://127.0.0.1:4200",
 ]
 
-SECURE_SSL_REDIRECT = True  # Only for local development
+#SECURE_SSL_REDIRECT = True  # Only for local development # django alredy do this auto in productiom when using DEBUG = FALSE
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_SECURE = True
 
 CORS_ALLOW_CREDENTIALS = True
 DEBUG_PROPAGATE_EXCEPTIONS = True
+
+SESSION_COOKIE_SAMESITE = "None"
+CSRF_COOKIE_SAMESITE = "None"
 
 
 CORS_ALLOW_METHODS = [
@@ -183,44 +200,49 @@ CORS_ALLOW_HEADERS = [
 
 CSRF_COOKIE_HTTPONLY = False  # Ensures the CSRF token is accessible by JavaScript.
 
+CSRF_COOKIE_SECURE = True 
+CSRF_COOKIE_HTTPONLY = True
+
+SESSION_COOKIE_HTTPONLY = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
-ssl._create_default_https_context = ssl._create_unverified_context
-ssl.get_default_verify_paths = lambda: ssl.VerifyPaths(cafile=certifi.where())
+#ssl._create_default_https_context = ssl._create_unverified_context
+#ssl.get_default_verify_paths = lambda: ssl.VerifyPaths(cafile=certifi.where())
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-)
+#logging.basicConfig(
+ #   level=logging.DEBUG,
+ #   format='%(asctime)s - %(levelname)s - %(message)s',
+#)
 
 # Email configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587  # TLS
-EMAIL_USE_TLS = True
-#EMAIL_USE_SSL = True
-EMAIL_HOST_USER = 'danyin161@gmail.com'  # Your Gmail address
-EMAIL_HOST_PASSWORD = 'ercddvdzzlylzmvn'  # The app-specific password
+#EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+#EMAIL_HOST = 'smtp.gmail.com'
+#EMAIL_PORT = 587  # TLS
+#EMAIL_USE_TLS = True
+#EMAIL_HOST_USER = 'danyin161@gmail.com'  # Your Gmail address
+#EMAIL_HOST_PASSWORD = 'zcqp fats rnqv mgls'  # The app-specific password
 
-DEFAULT_FROM_EMAIL = 'danyin161@gmail.com' 
+#DEFAULT_FROM_EMAIL = 'danyin161@gmail.com' 
 
 # Debugging settingsx
-EMAIL_DEBUG = True
+#EMAIL_DEBUG = True
 
 # SSL context to handle CA file
-EMAIL_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+#EMAIL_SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 # SSL context
-context = ssl.create_default_context(cafile=certifi.where())
-EMAIL_SSL_CONTEXT = context
+#context = ssl.create_default_context(cafile=certifi.where())
+#EMAIL_SSL_CONTEXT = context
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.mail.yahoo.com'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'your-email@yahoo.com'
-EMAIL_HOST_PASSWORD = 'your-email-password-or-app-password'
+#server = smtplib.SMTP(EMAIL_HOST, EMAIL_PORT)
+#server.ehlo()
+#server.starttls()
+#server.ehlo()
+#server.login(EMAIL_HOST_USER, EMAIL_HOST_PASSWORD)
+#print("✅ Successfully connected to SMTP server!")
+#server.quit()
+
 
 
 # Static files (CSS, JavaScript, Images)

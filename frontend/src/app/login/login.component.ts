@@ -27,12 +27,14 @@ export class LoginComponent {
   login() {
     this.authService.login(this.username, this.password).subscribe(
       (response) => {
+        console.log('Login response:', response); 
         // Save the token in local storage
-        localStorage.setItem('token', response.token);
+        localStorage.setItem('access_token', response.access);  // ✅ Correct key
+        localStorage.setItem('refresh_token', response.refresh);
+        console.log('Access Token saved:', response.access); 
         // Redirect to the home page on successful login
 
         // Login successful
-       // this.router.navigate(['/setup-2fa']); // Redirect to 2FA setup
         this.router.navigate(['/setup-2fa']);
       },
       (error) => {

@@ -40,7 +40,8 @@ export class ProfileComponent implements OnInit {
         const token = localStorage.getItem('auth_token');
         if (token) {
           // Fetch profile from backend if not already available
-          this.authService.getProfile(token).subscribe({
+          this.authService.getProfile().subscribe({
+
             next: (profileData) => {
               this.profile = profileData;
   
@@ -118,7 +119,8 @@ export class ProfileComponent implements OnInit {
   loadProfile(): void {
     const token = localStorage.getItem('auth_token');
     if (token) {
-      this.authService.getProfile(token).subscribe({
+      this.authService.getProfile().subscribe({
+
         next: (data) => {
           this.profile = data;
         },

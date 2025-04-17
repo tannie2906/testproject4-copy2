@@ -22,7 +22,8 @@ export class SettingsService {
         // Fetch the updated profile and update the shared state
         const token = localStorage.getItem('auth_token');
         if (token) {
-          this.authService.getProfile(token).subscribe();
+          this.authService.getProfile().subscribe();
+
         }
       })
     );
@@ -33,7 +34,8 @@ export class SettingsService {
       tap(() => {
         const token = localStorage.getItem('auth_token');
         if (token) {
-          this.authService.getProfile(token).subscribe();
+          this.authService.getProfile().subscribe();
+
         }
       })
     );

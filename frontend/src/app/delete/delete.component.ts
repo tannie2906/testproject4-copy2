@@ -39,7 +39,7 @@ export class DeleteComponent implements OnInit {
 
   // Fetch user ID from the AuthService and then fetch deleted files
   getUserIdAndFetchDeletedFiles(): void {
-    this.authService.getProfile(this.authService.getToken() || '').subscribe(
+    this.authService.getProfile().subscribe(
       (profile) => {
         this.userId = profile.id;  // Ensure the correct field name is used for user ID
         if (this.userId) {

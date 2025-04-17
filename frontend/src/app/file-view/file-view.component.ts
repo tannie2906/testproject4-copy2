@@ -15,8 +15,6 @@ export class FileViewComponent implements OnInit {
   file: {url: any; name: string; type: string; content: string; tables?: string[][][]; } | undefined;
   
 
-  
-
   constructor(
     private route: ActivatedRoute,
     private fileService: FileService,

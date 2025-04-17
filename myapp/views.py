@@ -44,7 +44,7 @@ from django.utils.decorators import method_decorator
 from django.db import transaction
 
 #from myapp.gmail_api import send_email
-from testproject.settings import EMAIL_HOST_USER
+#from testproject.settings import EMAIL_HOST_USER
 
 
 from .models import DeletedFile, UploadedFile, File, SharedFile, Profile, Folder, FileFrequenly
@@ -89,6 +89,8 @@ from django.core.exceptions import ValidationError
 from .models import Lockbox
 from django.utils import timezone
 from datetime import timedelta
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .gmail_api import send_email_via_gmail  # This imports the function from gmail_api.py
 
@@ -123,6 +125,7 @@ def validate_file_owner(file_id, user):
 # ViewSet for files
 class FileUploadView(APIView):
     permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
 
     def detect_gibberish(self, text):
         """Detects if the text contains gibberish characters."""
@@ -158,7 +161,7 @@ class FileUploadView(APIView):
                 # Read file content for text-based files
                 if file_extension in {'txt', 'csv'}:
                     try:
-                        content = uploaded_file.read().decode('utf-8', errors='ignore')
+                        content = uploaded_file.read().decode('utf-8', errors='replace')
                         if self.detect_gibberish(content):
                             return Response({"error": f"Gibberish content detected in {uploaded_file.name}"}, status=400)
                     except Exception as e:
@@ -207,6 +210,7 @@ class FileUploadView(APIView):
 
         except Exception as e:
             print("Upload Error:", str(e))
+            traceback.print_exc()  # This prints the full error details
             return Response({"error": str(e)}, status=500)
 
  
@@ -240,8 +244,12 @@ class CustomAuthToken(APIView):
             password=request.data.get('password')
         )
         if user:
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({"token": token.key})
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+            })
         return Response({"error": "Invalid credentials"}, status=400)
 
 #password reset 
@@ -734,7 +742,14 @@ def toggle_star(request, id):
 
 #preview file
 class FileView(APIView):
+    authentication_classes = [JWTAuthentication]  # Require JWT authentication
+    permission_classes = [IsAuthenticated] 
+
     def get(self, request, file_id):
+
+        if not request.user.is_authenticated:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
+        
         try:
             file = get_object_or_404(File, id=file_id)
             encrypted_file_path = file.file.path

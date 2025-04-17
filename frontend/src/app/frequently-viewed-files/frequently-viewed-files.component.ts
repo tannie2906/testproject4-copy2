@@ -54,7 +54,7 @@ export class FrequentlyViewedFilesComponent implements OnInit {
     trackFileView(fileId: number) {
       const token = this.authService.getToken();
       return this.http.post(`${environment.apiUrl}/files/view/${fileId}/track/`, {}, {
-        headers: { Authorization: `Token ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
     }
   }

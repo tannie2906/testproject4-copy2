@@ -74,7 +74,7 @@ export class AppComponent implements OnInit {
   fetchProfile(): void {
     const token = localStorage.getItem('auth_token');
     if (token) {
-      this.authService.getProfile(token).subscribe({
+      this.authService.getProfile().subscribe({
         next: (data) => {
           this.profilePictureUrl = data.picture || 'assets/images/profile.png';
         },

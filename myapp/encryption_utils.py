@@ -58,6 +58,7 @@ def encrypt_and_save_file(file, save_path):
     print(f"Before writing: {len(encrypted_key)} bytes")
     
     nonce = os.urandom(12)  # Generate a 12-byte secure nonce
+    
     cipher = Cipher(algorithms.AES(key), modes.GCM(nonce), backend=default_backend())
     encryptor = cipher.encryptor()
     encrypted_data = encryptor.update(file.read()) + encryptor.finalize()
@@ -115,3 +116,4 @@ def decrypt_file_to_temp(encrypted_file_path, temp_file_path):
         return temp_file_path
     except Exception as e:
         raise Exception(f"Error decrypting file: {e}")
+

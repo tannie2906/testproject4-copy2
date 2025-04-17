@@ -24,6 +24,7 @@
     "axios": "^1.7.7",
     "crypto-js": "^4.2.0",
     "font-awesome": "^4.7.0",
+    "jwt-decode": "^4.0.0",
     "ngx-qrcode2": "^9.0.0",
     "rxjs": "~7.8.0",
     "tslib": "^1.10.0",

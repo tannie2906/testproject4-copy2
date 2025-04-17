@@ -84,7 +84,7 @@ export class SettingsComponent implements OnInit {
     this.http.post(`${environment.apiUrl}/lockbox/save-password/`, 
       { password: this.lockboxPassword }, 
       {
-        headers: new HttpHeaders({ 'Authorization': `Token ${token}` }),
+        headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` }),
       }).subscribe({
         next: (response: any) => {
           if (response.success) {

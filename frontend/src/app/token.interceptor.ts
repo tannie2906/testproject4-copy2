@@ -18,7 +18,7 @@ export class TokenInterceptor implements HttpInterceptor {
       // Clone the request and add the Authorization header
       request = request.clone({
         setHeaders: {
-          Authorization: `Token ${token}`,
+          Authorization: `Bearer ${token}`,
         },
       });
     }
