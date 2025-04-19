@@ -960,46 +960,60 @@ class DeleteAccountView(APIView):
 
         return Response({"message": "Account deleted successfully"}, status=status.HTTP_200_OK)
 
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_TIME = timedelta(minutes=15) 
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def verify_2fa(request):
     try:
-        data = request.data
-        otp = data.get('otp')
-        
+        user = request.user
+        profile = user.profile
+
+        # Check if 2FA is locked
+        if profile.otp_locked:
+            logger.warning(f"User {user.username}'s 2FA is locked due to too many failed attempts.")
+            return JsonResponse({'error': '2FA locked due to too many failed attempts. Contact admin.'}, status=403)
+
+        otp = request.data.get('otp')
         if not otp:
             logger.error("No OTP provided in request")
             return JsonResponse({'error': 'OTP is required'}, status=400)
 
-        # Log the received OTP
         logger.info(f"Received OTP: {otp}")
 
-        user = request.user
-        base32_secret = user.profile.otp_secret
-        
+        base32_secret = profile.otp_secret
         if not base32_secret:
-            logger.error("No OTP secret available for the user")
+            logger.error(f"No OTP secret configured for user {user.username}")
             return JsonResponse({'error': 'No OTP secret configured'}, status=400)
 
-        # Log the secret being used
-        logger.info(f"Using secret: {base32_secret}")
+        logger.info(f"Using OTP secret for user {user.username}")
 
         totp = pyotp.TOTP(base32_secret)
-
-        # Generate the current OTP on the server and log it
         server_otp = totp.now()
-        logger.info(f"Generated OTP on Server: {server_otp}")
+        logger.info(f"Generated OTP on server for verification: {server_otp}")
 
-        # Validate the received OTP
-        if totp.verify(otp, valid_window=1):  # ±30 seconds drift allowed
-            logger.info("OTP is valid")
+        # Validate OTP with ±30 seconds window
+        if totp.verify(otp, valid_window=1):
+            logger.info(f"2FA successful for user {user.username}")
+            profile.otp_failed_attempts = 0  # Reset on success
+            profile.save()
             return JsonResponse({'success': True, 'message': '2FA verified successfully'})
         else:
-            logger.error("Invalid OTP provided")
+            # Handle failed attempt
+            profile.otp_failed_attempts += 1
+            profile.last_failed_otp = now()
+            logger.warning(f"Invalid OTP for user {user.username}. Failed attempts: {profile.otp_failed_attempts}")
+
+            if profile.otp_failed_attempts >= MAX_FAILED_ATTEMPTS:
+                profile.otp_locked = True
+                logger.error(f"User {user.username}'s 2FA locked due to max failed attempts.")
+
+            profile.save()
             return JsonResponse({'error': 'Invalid OTP'}, status=400)
 
     except Exception as e:
-        logger.error("Error during OTP verification", exc_info=True)
+        logger.exception("Unexpected error during OTP verification")
         return JsonResponse({'error': 'Server error'}, status=500)
 
 @api_view(['POST'])

@@ -117,6 +117,9 @@ class Profile(models.Model):
     otp = models.IntegerField(null=True, blank=True)  # Field for storing OTP
     otp_created_at = models.DateTimeField(null=True, blank=True)  # Field for OTP timestamp
     otp_secret = models.CharField(max_length=255, blank=True, null=True)
+    otp_failed_attempts = models.IntegerField(default=0)
+    otp_locked = models.BooleanField(default=False)
+    last_failed_otp = models.DateTimeField(null=True, blank=True)
 
 
     def __str__(self):
