@@ -57,7 +57,7 @@ export class SettingsService {
     console.log('Payload sent to backend:', profileData); // Log payload
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+      Authorization: `Bearer ${localStorage.getItem('access_token')}`,
     });
     return this.http.put(`${this.baseUrl}/update-profile`, profileData, { headers });
   }

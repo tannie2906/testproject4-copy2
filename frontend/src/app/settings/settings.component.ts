@@ -32,7 +32,7 @@ export class SettingsComponent implements OnInit {
   constructor(private authService: AuthService, private settingsService: SettingsService, private router: Router, private http: HttpClient) {}
 
   ngOnInit(): void {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     if (token) {
       this.authService.getSettings(token).subscribe((data) => {
         this.settings = data;
@@ -75,7 +75,7 @@ export class SettingsComponent implements OnInit {
   
   //lockbox
   savePassword() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     if (!token) {
       alert('❌ Authentication token missing! Please log in.');
       return;

@@ -35,9 +35,9 @@ export class ApiService {
   }   
 
   // Fetch paginated search results
-  getSearchResults(query: string, page: number = 1): Observable<any> {
+  getSearchResults(query: string, page: number, headers: HttpHeaders): Observable<any> {
     const encodedQuery = encodeURIComponent(query);
     const url = `${environment.apiUrl}/apisearch/?search=${encodedQuery}&page=${page}`; // Ensure prefix `/api`
-    return this.http.get(url);
+    return this.http.get(url, { headers });
   }  
 }  

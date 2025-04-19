@@ -13,7 +13,7 @@ export class TokenInterceptor implements HttpInterceptor {
   constructor(private router: Router, private authService: AuthService) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    const token = localStorage.getItem('auth_token'); // Retrieve token from localStorage
+    const token = localStorage.getItem('access_token'); // Retrieve token from localStorage
     if (token) {
       // Clone the request and add the Authorization header
       request = request.clone({

@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../services/api.service';
 import { FileService, File } from '../services/file.service';
-import { HttpErrorResponse } from '@angular/common/http';
+import { HttpErrorResponse, HttpHeaders } from '@angular/common/http';
 import { UserFile } from '../models/user-file.model';
 import { AuthService } from '../auth.service';
 import axios from 'axios';
@@ -53,7 +53,13 @@ export class SearchComponent implements OnInit {
 
   // Fetch search results
   fetchSearchResults(query: string, page: number): void {
-    this.apiService.getSearchResults(query, page).subscribe(
+    const token = localStorage.getItem('access_token');  // Get the token from localStorage
+    const headers = new HttpHeaders({
+      'Authorization': `Bearer ${token}`  // Add the Authorization header
+    });
+  
+    // Now pass the headers directly, not inside an object
+    this.apiService.getSearchResults(query, page, headers).subscribe(
       (response: any) => {
         this.searchResults = response.results || []; // Paginated data
         this.totalPages = Math.ceil(response.count / 10); // Calculate total pages based on page size
