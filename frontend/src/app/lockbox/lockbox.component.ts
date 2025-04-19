@@ -26,7 +26,7 @@ export class LockboxComponent implements OnInit {
   }
 
   verifyPassword() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     if (!token) {
       alert('❌ Authentication token missing! Please log in.');
       this.router.navigate(['/login']);
@@ -36,7 +36,7 @@ export class LockboxComponent implements OnInit {
     this.http.post(`${environment.apiUrl}/lockbox/verify-password/`, 
       { password: this.enteredPassword }, 
       {
-        headers: new HttpHeaders({ 'Authorization': `Token ${token}` }),
+        headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` }),
       }).subscribe({
         next: (response: any) => {
           if (response.success) {
@@ -55,18 +55,18 @@ export class LockboxComponent implements OnInit {
   
 
   fetchLockedFiles() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     this.http.get('https://127.0.0.1:8000/api/lockbox/files/', {
-      headers: new HttpHeaders({ 'Authorization': `Token ${token}` }),
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` }),
     }).subscribe((data: any) => {
       this.files = data;
     });
   }
 
   moveOut(fileId: number) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     this.http.post(`https://127.0.0.1:8000/api/lockbox/remove/${fileId}/`, {}, {
-      headers: new HttpHeaders({ 'Authorization': `Token ${token}` }),
+      headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` }),
     }).subscribe(() => {
       alert('File moved back to folder!');
       this.fetchLockedFiles();

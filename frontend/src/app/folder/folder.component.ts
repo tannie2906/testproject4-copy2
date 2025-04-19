@@ -572,7 +572,7 @@ export class FolderComponent implements OnInit {
   }
 
   moveToLockbox(fileId: number) {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('access_token');
     this.http.post(`https://127.0.0.1:8000/api/lockbox/move/${fileId}/`, {}, {
       headers: new HttpHeaders({ 'Authorization': `Bearer ${token}` }),
     }).subscribe(() => {

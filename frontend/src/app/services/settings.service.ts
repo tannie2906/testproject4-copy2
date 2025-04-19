@@ -20,7 +20,7 @@ export class SettingsService {
     return this.http.put(`${this.baseUrl}/update-username`, { username: newUsername }).pipe(
       tap(() => {
         // Fetch the updated profile and update the shared state
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         if (token) {
           this.authService.getProfile().subscribe();
 
@@ -32,7 +32,7 @@ export class SettingsService {
   updateNameDetails(firstName: string, lastName: string): Observable<any> {
     return this.http.put(`${this.baseUrl}/update-name`, { first_name: firstName, last_name: lastName }).pipe(
       tap(() => {
-        const token = localStorage.getItem('auth_token');
+        const token = localStorage.getItem('access_token');
         if (token) {
           this.authService.getProfile().subscribe();
 
